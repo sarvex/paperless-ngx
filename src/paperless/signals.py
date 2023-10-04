@@ -8,7 +8,7 @@ logger = logging.getLogger("paperless.auth")
 
 # https://docs.djangoproject.com/en/4.1/ref/contrib/auth/#django.contrib.auth.signals.user_login_failed
 def handle_failed_login(sender, credentials, request, **kwargs):
-    ipware = IpWare(proxy_trusted_list=settings.TRUSTED_PROXIES)
+    ipware = IpWare(proxy_list=settings.TRUSTED_PROXIES)
     client_ip, _ = ipware.get_client_ip(
         meta=request.META,
     )
