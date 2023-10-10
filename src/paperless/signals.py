@@ -21,12 +21,11 @@ def handle_failed_login(sender, credentials, request, **kwargs):
 
     if client_ip is None:
         log_output += ". Unable to determine IP address."
+    elif client_ip.is_global:
+        # We got the client's IP address
+        log_output += f" from IP `{client_ip}`."
     else:
-        if client_ip.is_global:
-            # We got the client's IP address
-            log_output += f" from IP `{client_ip}`."
-        else:
-            # The client's IP address is private
-            log_output += f" from private IP `{client_ip}`."
+        # The client's IP address is private
+        log_output += f" from private IP `{client_ip}`."
 
     logger.info(log_output)

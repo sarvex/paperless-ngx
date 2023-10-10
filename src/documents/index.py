@@ -134,7 +134,7 @@ def update_document(writer: AsyncWriter, doc: Document):
         has_correspondent=doc.correspondent is not None,
         tag=tags if tags else None,
         tag_id=tags_ids if tags_ids else None,
-        has_tag=len(tags) > 0,
+        has_tag=tags != "",
         type=doc.document_type.name if doc.document_type else None,
         type_id=doc.document_type.id if doc.document_type else None,
         has_type=doc.document_type is not None,
@@ -220,24 +220,25 @@ class DelayedQuery:
             if query_filter == "id":
                 criterias.append(query.Term(f"{field}_id", value))
             elif query_filter == "id__in":
-                in_filter = []
-                for object_id in value.split(","):
-                    in_filter.append(
-                        query.Term(f"{field}_id", object_id),
-                    )
+                in_filter = [
+                    query.Term(f"{field}_id", object_id)
+                    for object_id in value.split(",")
+                ]
                 criterias.append(query.Or(in_filter))
             elif query_filter == "id__none":
-                for object_id in value.split(","):
-                    criterias.append(
-                        query.Not(query.Term(f"{field}_id", object_id)),
-                    )
+                criterias.extend(
+                    query.Not(query.Term(f"{field}_id", object_id))
+                    for object_id in value.split(",")
+                )
             elif query_filter == "isnull":
                 criterias.append(
                     query.Term(f"has_{field}", self.evalBoolean(value) is False),
                 )
             elif query_filter == "id__all":
-                for object_id in value.split(","):
-                    criterias.append(query.Term(f"{field}_id", object_id))
+                criterias.extend(
+                    query.Term(f"{field}_id", object_id)
+                    for object_id in value.split(",")
+                )
             elif query_filter == "date__lt":
                 criterias.append(
                     query.DateRange(field, start=None, end=isoparse(value)),
@@ -258,12 +259,11 @@ class DelayedQuery:
         user_criterias = get_permissions_criterias(
             user=self.user,
         )
-        if len(criterias) > 0:
-            if len(user_criterias) > 0:
-                criterias.append(query.Or(user_criterias))
-            return query.And(criterias)
-        else:
+        if not criterias:
             return query.Or(user_criterias) if len(user_criterias) > 0 else None
+        if len(user_criterias) > 0:
+            criterias.append(query.Or(user_criterias))
+        return query.And(criterias)
 
     def evalBoolean(self, val):
         return val.lower() in {"true", "1"}
@@ -306,7 +306,7 @@ class DelayedQuery:
         self.user = user
 
     def __len__(self):
-        page = self[0:1]
+        page = self[:1]
         return len(page)
 
     def __getitem__(self, item):

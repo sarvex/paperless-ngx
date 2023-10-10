@@ -223,17 +223,16 @@ class FaultyGenericExceptionParser(DocumentParser):
 
 
 def fake_magic_from_file(file, mime=False):
-    if mime:
-        if os.path.splitext(file)[1] == ".pdf":
-            return "application/pdf"
-        elif os.path.splitext(file)[1] == ".png":
-            return "image/png"
-        elif os.path.splitext(file)[1] == ".webp":
-            return "image/webp"
-        else:
-            return "unknown"
-    else:
+    if not mime:
         return "A verbose string that describes the contents of the file"
+    if os.path.splitext(file)[1] == ".pdf":
+        return "application/pdf"
+    elif os.path.splitext(file)[1] == ".png":
+        return "image/png"
+    elif os.path.splitext(file)[1] == ".webp":
+        return "image/webp"
+    else:
+        return "unknown"
 
 
 @mock.patch("documents.consumer.magic.from_file", fake_magic_from_file)

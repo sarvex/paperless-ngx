@@ -83,15 +83,15 @@ class TikaDocumentParser(DocumentParser):
     def convert_to_pdf(self, document_path, file_name):
         pdf_path = os.path.join(self.tempdir, "convert.pdf")
         gotenberg_server = settings.TIKA_GOTENBERG_ENDPOINT
-        url = gotenberg_server + "/forms/libreoffice/convert"
+        url = f"{gotenberg_server}/forms/libreoffice/convert"
 
         self.log.info(f"Converting {document_path} to PDF as {pdf_path}")
         with open(document_path, "rb") as document_handle:
             files = {
                 "files": (
-                    "convert" + os.path.splitext(document_path)[-1],
+                    f"convert{os.path.splitext(document_path)[-1]}",
                     document_handle,
-                ),
+                )
             }
             headers = {}
             data = {}

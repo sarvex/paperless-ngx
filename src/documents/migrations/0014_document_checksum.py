@@ -71,7 +71,7 @@ class Document:
 
     @property
     def file_name(self):
-        return slugify(str(self)) + "." + self.file_type
+        return f"{slugify(str(self))}.{self.file_type}"
 
 
 def set_checksums(apps, schema_editor):
@@ -135,7 +135,7 @@ def set_checksums(apps, schema_editor):
                     ),
                     fg="green",
                 ),
-                line=colourise("\n{}\n".format("=" * 80), fg="white", opts=("bold",)),
+                line=colourise(f'\n{"=" * 80}\n', fg="white", opts=("bold",)),
             )
             raise RuntimeError(error)
         sums[checksum] = (document.pk, document.file_name)

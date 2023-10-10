@@ -102,9 +102,12 @@ class Command(BaseCommand):
 
         # Don't spin up a pool of 1 process
         if options["processes"] == 1:
-            results = []
-            for work in tqdm.tqdm(work_pkgs, disable=options["no_progress_bar"]):
-                results.append(_process_and_match(work))
+            results = [
+                _process_and_match(work)
+                for work in tqdm.tqdm(
+                    work_pkgs, disable=options["no_progress_bar"]
+                )
+            ]
         else:
             with multiprocessing.Pool(processes=options["processes"]) as pool:
                 results = list(
@@ -115,18 +118,15 @@ class Command(BaseCommand):
                     ),
                 )
 
-        # Check results
-        messages = []
-        for result in sorted(results):
-            if result.ratio >= opt_ratio:
-                messages.append(
-                    self.style.NOTICE(
-                        f"Document {result.doc_one_pk} fuzzy match"
-                        f" to {result.doc_two_pk} (confidence {result.ratio:.3f})",
-                    ),
-                )
-
-        if len(messages) == 0:
+        messages = [
+            self.style.NOTICE(
+                f"Document {result.doc_one_pk} fuzzy match"
+                f" to {result.doc_two_pk} (confidence {result.ratio:.3f})",
+            )
+            for result in sorted(results)
+            if result.ratio >= opt_ratio
+        ]
+        if not messages:
             messages.append(
                 self.style.SUCCESS("No matches found"),
             )

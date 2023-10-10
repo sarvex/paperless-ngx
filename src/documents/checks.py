@@ -52,16 +52,14 @@ def changed_password_check(app_configs, **kwargs):
 
 @register()
 def parser_check(app_configs, **kwargs):
-    parsers = []
-    for response in document_consumer_declaration.send(None):
-        parsers.append(response[1])
-
-    if len(parsers) == 0:
+    if parsers := [
+        response[1] for response in document_consumer_declaration.send(None)
+    ]:
+        return []
+    else:
         return [
             Error(
                 "No parsers found. This is a bug. The consumer won't be "
                 "able to consume any documents without parsers.",
             ),
         ]
-    else:
-        return []

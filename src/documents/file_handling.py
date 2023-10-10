@@ -39,17 +39,16 @@ def delete_empty_directories(directory, root):
         return
 
     while directory != root:
-        if not os.listdir(directory):
-            # it's empty
-            try:
-                os.rmdir(directory)
-            except OSError:
-                # whatever. empty directories aren't that bad anyway.
-                return
-        else:
+        if os.listdir(directory):
             # it's not empty.
             return
 
+        # it's empty
+        try:
+            os.rmdir(directory)
+        except OSError:
+            # whatever. empty directories aren't that bad anyway.
+            return
         # go one level up
         directory = os.path.normpath(os.path.dirname(directory))
 
@@ -103,7 +102,7 @@ def generate_unique_filename(doc, archive_filename=False):
     # the original filename first.
 
     if archive_filename and doc.filename:
-        new_filename = os.path.splitext(doc.filename)[0] + ".pdf"
+        new_filename = f"{os.path.splitext(doc.filename)[0]}.pdf"
         if new_filename == old_filename or not os.path.exists(
             os.path.join(root, new_filename),
         ):

@@ -91,20 +91,19 @@ class DocumentClassifier:
                     raise IncompatibleClassifierVersionError(
                         "Cannot load classifier, incompatible versions.",
                     )
-                else:
-                    try:
-                        self.last_doc_change_time = pickle.load(f)
-                        self.last_auto_type_hash = pickle.load(f)
+                try:
+                    self.last_doc_change_time = pickle.load(f)
+                    self.last_auto_type_hash = pickle.load(f)
 
-                        self.data_vectorizer = pickle.load(f)
-                        self.tags_binarizer = pickle.load(f)
+                    self.data_vectorizer = pickle.load(f)
+                    self.tags_binarizer = pickle.load(f)
 
-                        self.tags_classifier = pickle.load(f)
-                        self.correspondent_classifier = pickle.load(f)
-                        self.document_type_classifier = pickle.load(f)
-                        self.storage_path_classifier = pickle.load(f)
-                    except Exception as err:
-                        raise ClassifierModelCorruptError from err
+                    self.tags_classifier = pickle.load(f)
+                    self.correspondent_classifier = pickle.load(f)
+                    self.document_type_classifier = pickle.load(f)
+                    self.storage_path_classifier = pickle.load(f)
+                except Exception as err:
+                    raise ClassifierModelCorruptError from err
 
             # Check for the warning about unpickling from differing versions
             # and consider it incompatible
@@ -318,7 +317,7 @@ class DocumentClassifier:
 
         return True
 
-    def preprocess_content(self, content: str) -> str:  # pragma: nocover
+    def preprocess_content(self, content: str) -> str:    # pragma: nocover
         """
         Process to contents of a document, distilling it down into
         words which are meaningful to the content
@@ -361,19 +360,11 @@ class DocumentClassifier:
                     language=settings.NLTK_LANGUAGE,
                 )
 
-                meaningful_words = []
-                for word in words:
-                    # Skip stop words
-                    # These are words like "a", "and", "the" which add little meaning
-                    if word in self._stop_words:
-                        continue
-                    # Stem the words
-                    # This reduces the words to their stems.
-                    # "amazement" returns "amaz"
-                    # "amaze" returns "amaz
-                    # "amazed" returns "amaz"
-                    meaningful_words.append(self._stemmer.stem(word))
-
+                meaningful_words = [
+                    self._stemmer.stem(word)
+                    for word in words
+                    if word not in self._stop_words
+                ]
                 return " ".join(meaningful_words)
 
             except AttributeError:
@@ -385,10 +376,7 @@ class DocumentClassifier:
         if self.correspondent_classifier:
             X = self.data_vectorizer.transform([self.preprocess_content(content)])
             correspondent_id = self.correspondent_classifier.predict(X)
-            if correspondent_id != -1:
-                return correspondent_id
-            else:
-                return None
+            return correspondent_id if correspondent_id != -1 else None
         else:
             return None
 
@@ -396,10 +384,7 @@ class DocumentClassifier:
         if self.document_type_classifier:
             X = self.data_vectorizer.transform([self.preprocess_content(content)])
             document_type_id = self.document_type_classifier.predict(X)
-            if document_type_id != -1:
-                return document_type_id
-            else:
-                return None
+            return document_type_id if document_type_id != -1 else None
         else:
             return None
 
@@ -428,9 +413,6 @@ class DocumentClassifier:
         if self.storage_path_classifier:
             X = self.data_vectorizer.transform([self.preprocess_content(content)])
             storage_path_id = self.storage_path_classifier.predict(X)
-            if storage_path_id != -1:
-                return storage_path_id
-            else:
-                return None
+            return storage_path_id if storage_path_id != -1 else None
         else:
             return None

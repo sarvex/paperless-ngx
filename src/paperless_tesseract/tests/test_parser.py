@@ -68,11 +68,7 @@ class TestParser(DirectoriesMixin, FileSystemAssertsMixin, TestCase):
             self.assertEqual(
                 result,
                 actual_result,
-                "strip_exceess_whitespace({}) != '{}', but '{}'".format(
-                    source,
-                    result,
-                    actual_result,
-                ),
+                f"strip_exceess_whitespace({source}) != '{result}', but '{actual_result}'",
             )
 
     def test_get_text_from_pdf(self):
@@ -601,9 +597,7 @@ class TestParser(DirectoriesMixin, FileSystemAssertsMixin, TestCase):
             ["page 1", "page 2", "page 3", "page 4", "page 5", "page 6"],
         )
 
-        with open(os.path.join(parser.tempdir, "sidecar.txt")) as f:
-            sidecar = f.read()
-
+        sidecar = Path(os.path.join(parser.tempdir, "sidecar.txt")).read_text()
         self.assertIn("[OCR skipped on page(s) 4-6]", sidecar)
 
     @override_settings(OCR_MODE="redo")

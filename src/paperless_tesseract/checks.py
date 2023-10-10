@@ -33,14 +33,17 @@ def check_default_language_available(app_configs, **kwargs):
 
     specified_langs = settings.OCR_LANGUAGE.split("+")
 
-    for lang in specified_langs:
-        if lang not in installed_langs:
-            return [
+    return next(
+        (
+            [
                 Error(
                     f"The selected ocr language {lang} is "
                     f"not installed. Paperless cannot OCR your documents "
                     f"without it. Please fix PAPERLESS_OCR_LANGUAGE.",
                 ),
             ]
-
-    return []
+            for lang in specified_langs
+            if lang not in installed_langs
+        ),
+        [],
+    )

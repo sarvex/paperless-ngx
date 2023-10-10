@@ -89,13 +89,10 @@ class BarcodeReader:
         # Ensure the barcodes have been read
         self.detect()
 
-        # get the first barcode that starts with CONSUMER_ASN_BARCODE_PREFIX
-        asn_text = next(
+        if asn_text := next(
             (x.value for x in self.barcodes if x.is_asn),
             None,
-        )
-
-        if asn_text:
+        ):
             logger.debug(f"Found ASN Barcode: {asn_text}")
             # remove the prefix and remove whitespace
             asn_text = asn_text[len(settings.CONSUMER_ASN_BARCODE_PREFIX) :].strip()

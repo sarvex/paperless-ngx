@@ -70,11 +70,7 @@ def get_default_file_extension(mime_type: str) -> str:
         if mime_type in supported_mime_types:
             return supported_mime_types[mime_type]
 
-    ext = mimetypes.guess_extension(mime_type)
-    if ext:
-        return ext
-    else:
-        return ""
+    return ext if (ext := mimetypes.guess_extension(mime_type)) else ""
 
 
 @lru_cache(maxsize=8)
@@ -83,10 +79,7 @@ def is_file_ext_supported(ext: str) -> bool:
     Returns True if the file extension is supported, False otherwise
     TODO: Investigate why this really exists, why not use mimetype
     """
-    if ext:
-        return ext.lower() in get_supported_file_extensions()
-    else:
-        return False
+    return ext.lower() in get_supported_file_extensions() if ext else False
 
 
 def get_supported_file_extensions() -> set[str]:
@@ -162,7 +155,7 @@ def run_convert(
 
     logger.debug("Execute: " + " ".join(args), extra={"group": logging_group})
 
-    if not subprocess.Popen(args, env=environment).wait() == 0:
+    if subprocess.Popen(args, env=environment).wait() != 0:
         raise ParseError(f"Convert failed at {args}")
 
 
@@ -187,7 +180,7 @@ def make_thumbnail_from_pdf_gs_fallback(in_path, temp_dir, logging_group=None) -
     gs_out_path = os.path.join(temp_dir, "gs_out.png")
     cmd = [settings.GS_BINARY, "-q", "-sDEVICE=pngalpha", "-o", gs_out_path, in_path]
     try:
-        if not subprocess.Popen(cmd).wait() == 0:
+        if subprocess.Popen(cmd).wait() != 0:
             raise ParseError(f"Thumbnail (gs) failed at {cmd}")
         # then run convert on the output from gs to make WebP
         run_convert(

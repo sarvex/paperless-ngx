@@ -198,18 +198,17 @@ def matches(matching_model: MatchingModel, document: Document):
         if matching_model.is_insensitive:
             match = match.lower()
             text = text.lower()
-        if fuzz.partial_ratio(match, text, score_cutoff=90):
-            # TODO: make this better
-            log_reason(
-                matching_model,
-                document,
-                f"parts of the document content somehow match the string "
-                f"{matching_model.match}",
-            )
-            return True
-        else:
+        if not fuzz.partial_ratio(match, text, score_cutoff=90):
             return False
 
+        # TODO: make this better
+        log_reason(
+            matching_model,
+            document,
+            f"parts of the document content somehow match the string "
+            f"{matching_model.match}",
+        )
+        return True
     elif matching_model.matching_algorithm == MatchingModel.MATCH_AUTO:
         # this is done elsewhere.
         return False

@@ -23,12 +23,11 @@ class StatusConsumer(WebsocketConsumer):
     def connect(self):
         if not self._authenticated():
             raise DenyConnection
-        else:
-            async_to_sync(self.channel_layer.group_add)(
-                "status_updates",
-                self.channel_name,
-            )
-            raise AcceptConnection
+        async_to_sync(self.channel_layer.group_add)(
+            "status_updates",
+            self.channel_name,
+        )
+        raise AcceptConnection
 
     def disconnect(self, close_code):
         async_to_sync(self.channel_layer.group_discard)(
@@ -39,6 +38,5 @@ class StatusConsumer(WebsocketConsumer):
     def status_update(self, event):
         if not self._authenticated():
             self.close()
-        else:
-            if self._is_owner_or_unowned(event["data"]):
-                self.send(json.dumps(event["data"]))
+        elif self._is_owner_or_unowned(event["data"]):
+            self.send(json.dumps(event["data"]))

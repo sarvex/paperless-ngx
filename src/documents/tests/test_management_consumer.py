@@ -70,13 +70,11 @@ class ConsumerThreadMixin(DocumentConsumeDelayMixin):
         super().tearDown()
 
     def wait_for_task_mock_call(self, expected_call_count=1):
-        n = 0
-        while n < 50:
+        for _ in range(50):
             if self.consume_file_mock.call_count >= expected_call_count:
                 # give task_mock some time to finish and raise errors
                 sleep(1)
                 return
-            n += 1
             sleep(0.1)
 
     # A bogus async_task that will simply check the file for
@@ -86,12 +84,13 @@ class ConsumerThreadMixin(DocumentConsumeDelayMixin):
         input_doc: ConsumableDocument,
         overrides=None,
     ):
-        eq = filecmp.cmp(input_doc.original_file, self.sample_file, shallow=False)
-        if not eq:
+        if eq := filecmp.cmp(
+            input_doc.original_file, self.sample_file, shallow=False
+        ):
+            print("Consumed a perfectly valid file.")
+        else:
             print("Consumed an INVALID file.")
             raise ConsumerError("Incomplete File READ FAILED")
-        else:
-            print("Consumed a perfectly valid file.")
 
     def slow_write_file(self, target, incomplete=False):
         with open(self.sample_file, "rb") as f:
@@ -250,10 +249,10 @@ class TestConsumer(DirectoriesMixin, ConsumerThreadMixin, TransactionTestCase):
 
         self.assertEqual(2, self.consume_file_mock.call_count)
 
-        consumed_files = []
-        for input_doc, _ in self.get_all_consume_delay_call_args():
-            consumed_files.append(input_doc.original_file.name)
-
+        consumed_files = [
+            input_doc.original_file.name
+            for input_doc, _ in self.get_all_consume_delay_call_args()
+        ]
         self.assertCountEqual(consumed_files, ["my_file.pdf", "my_second_file.pdf"])
 
     def test_is_ignored(self):

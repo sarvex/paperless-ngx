@@ -129,7 +129,7 @@ def util_call_with_backoff(
         except Exception as e:  # pragma: no cover
             warnings.warn(f"Unexpected error: {e}")
 
-        retry_count = retry_count + 1
+        retry_count += 1
 
         time.sleep(retry_time)
         retry_time = retry_time * 2.0
@@ -271,9 +271,7 @@ class TestMigrations(TransactionTestCase):
 
         assert (
             self.migrate_from and self.migrate_to
-        ), "TestCase '{}' must define migrate_from and migrate_to properties".format(
-            type(self).__name__,
-        )
+        ), f"TestCase '{type(self).__name__}' must define migrate_from and migrate_to properties"
         self.migrate_from = [(self.app, self.migrate_from)]
         self.migrate_to = [(self.app, self.migrate_to)]
         executor = MigrationExecutor(connection)

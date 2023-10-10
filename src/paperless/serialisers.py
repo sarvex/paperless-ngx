@@ -57,9 +57,7 @@ class UserSerializer(serializers.ModelSerializer):
         return instance
 
     def create(self, validated_data):
-        groups = None
-        if "groups" in validated_data:
-            groups = validated_data.pop("groups")
+        groups = validated_data.pop("groups") if "groups" in validated_data else None
         user_permissions = None
         if "user_permissions" in validated_data:
             user_permissions = validated_data.pop("user_permissions")

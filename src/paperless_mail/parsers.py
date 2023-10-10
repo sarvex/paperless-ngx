@@ -53,7 +53,7 @@ class MailDocumentParser(DocumentParser):
             return result
 
         for key, value in mail.headers.items():
-            value = ", ".join(i for i in value)
+            value = ", ".join(value)
 
             result.append(
                 {
@@ -64,28 +64,26 @@ class MailDocumentParser(DocumentParser):
                 },
             )
 
-        result.append(
-            {
-                "namespace": "",
-                "prefix": "",
-                "key": "attachments",
-                "value": ", ".join(
-                    f"{attachment.filename}"
-                    f"({naturalsize(attachment.size, binary=True, format='%.2f')})"
-                    for attachment in mail.attachments
-                ),
-            },
+        result.extend(
+            (
+                {
+                    "namespace": "",
+                    "prefix": "",
+                    "key": "attachments",
+                    "value": ", ".join(
+                        f"{attachment.filename}"
+                        f"({naturalsize(attachment.size, binary=True, format='%.2f')})"
+                        for attachment in mail.attachments
+                    ),
+                },
+                {
+                    "namespace": "",
+                    "prefix": "",
+                    "key": "date",
+                    "value": mail.date.strftime("%Y-%m-%d %H:%M:%S %Z"),
+                },
+            )
         )
-
-        result.append(
-            {
-                "namespace": "",
-                "prefix": "",
-                "key": "date",
-                "value": mail.date.strftime("%Y-%m-%d %H:%M:%S %Z"),
-            },
-        )
-
         result.sort(key=lambda item: (item["prefix"], item["key"]))
         return result
 
@@ -130,7 +128,7 @@ class MailDocumentParser(DocumentParser):
                 fmt_text += f"Attachments: {', '.join(att)}\n\n"
 
             if mail.html:
-                fmt_text += "HTML content: " + strip_text(self.tika_parse(mail.html))
+                fmt_text += f"HTML content: {strip_text(self.tika_parse(mail.html))}"
 
             fmt_text += f"\n\n{strip_text(mail.text)}"
 
@@ -142,11 +140,7 @@ class MailDocumentParser(DocumentParser):
         self.log.debug("Building formatted text from email")
         self.text = build_formatted_text(mail)
 
-        if is_naive(mail.date):
-            self.date = make_aware(mail.date)
-        else:
-            self.date = mail.date
-
+        self.date = make_aware(mail.date) if is_naive(mail.date) else mail.date
         self.log.debug("Creating a PDF from the email")
         self.archive_path = self.generate_pdf(mail)
 
@@ -176,9 +170,7 @@ class MailDocumentParser(DocumentParser):
             with TikaClient(tika_url=self.tika_server) as client:
                 parsed = client.tika.as_text.from_buffer(html, "text/html")
 
-                if parsed.content is not None:
-                    return parsed.content.strip()
-                return ""
+                return parsed.content.strip() if parsed.content is not None else ""
         except Exception as err:
             raise ParseError(
                 f"Could not parse content with tika server at "
@@ -195,7 +187,7 @@ class MailDocumentParser(DocumentParser):
         if not mail_message.html:
             archive_path.write_bytes(mail_pdf_file.read_bytes())
         else:
-            url_merge = self.gotenberg_server + "/forms/pdfengines/merge"
+            url_merge = f"{self.gotenberg_server}/forms/pdfengines/merge"
 
             pdf_of_html_content = self.generate_pdf_from_html(
                 mail_message.html,
@@ -209,8 +201,7 @@ class MailDocumentParser(DocumentParser):
 
             try:
                 # Open a handle to each file, replacing the tuple
-                for filename in pdf_collection:
-                    file_multi_part = pdf_collection[filename]
+                for filename, file_multi_part in pdf_collection.items():
                     pdf_collection[filename] = (
                         file_multi_part[0],
                         file_multi_part[1].open("rb"),
@@ -250,7 +241,7 @@ class MailDocumentParser(DocumentParser):
             if isinstance(text, list):
                 text = "\n".join([str(e) for e in text])
             if not isinstance(text, str):
-                text = str(text)
+                text = text
             text = escape(text)
             text = clean(text)
             text = linkify(text, parse_email=True)
@@ -299,7 +290,7 @@ class MailDocumentParser(DocumentParser):
         Creates a PDF based on the given email, using the email's values in a
         an HTML template
         """
-        url = self.gotenberg_server + "/forms/chromium/convert/html"
+        url = f"{self.gotenberg_server}/forms/chromium/convert/html"
         self.log.info("Converting mail to PDF")
 
         css_file = Path(__file__).parent / "templates" / "output.css"
@@ -368,7 +359,7 @@ class MailDocumentParser(DocumentParser):
             text = compiled_close.sub("</div", text)
             return text
 
-        url = self.gotenberg_server + "/forms/chromium/convert/html"
+        url = f"{self.gotenberg_server}/forms/chromium/convert/html"
         self.log.info("Converting html to PDF")
 
         tempdir = Path(self.tempdir)
