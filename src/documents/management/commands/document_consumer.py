@@ -40,14 +40,13 @@ def _tags_from_path(filepath) -> set[Tag]:
     Returns set of Tag models
     """
     db.close_old_connections()
-    tag_ids = set()
     path_parts = Path(filepath).relative_to(settings.CONSUMPTION_DIR).parent.parts
-    for part in path_parts:
-        tag_ids.add(
-            Tag.objects.get_or_create(name__iexact=part, defaults={"name": part})[0].pk,
-        )
-
-    return tag_ids
+    return {
+        Tag.objects.get_or_create(name__iexact=part, defaults={"name": part})[
+            0
+        ].pk
+        for part in path_parts
+    }
 
 
 def _is_ignored(filepath: str) -> bool:
@@ -75,14 +74,13 @@ def _is_ignored(filepath: str) -> bool:
         # fnmatch("dir", "dir/*") == False
         # fnmatch("dir/", "dir/*") == True
         if part != filepath_relative.name:
-            part = part + "/"
+            part = f"{part}/"
         parts.append(part)
 
-    for pattern in settings.CONSUMER_IGNORE_PATTERNS:
-        if len(filter(parts, pattern)):
-            return True
-
-    return False
+    return any(
+        len(filter(parts, pattern))
+        for pattern in settings.CONSUMER_IGNORE_PATTERNS
+    )
 
 
 def _consume(filepath: str) -> None:
@@ -335,7 +333,7 @@ class Command(BaseCommand):
 
                 # If files are waiting, need to exit read() to check them
                 # Otherwise, go back to infinite sleep time, but only if not testing
-                if len(notified_files) > 0:
+                if notified_files:
                     timeout = inotify_debounce
                 elif is_testing:
                     timeout = self.testing_timeout_ms

@@ -23,7 +23,7 @@ logger = logging.getLogger("paperless.migrations")
 
 
 def archive_name_from_filename(filename):
-    return os.path.splitext(filename)[0] + ".pdf"
+    return f"{os.path.splitext(filename)[0]}.pdf"
 
 
 def archive_path_old(doc):

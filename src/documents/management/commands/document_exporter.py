@@ -324,7 +324,7 @@ class Command(BaseCommand):
             document_dict[EXPORTER_FILE_NAME] = original_name
 
             if not self.no_thumbnail:
-                thumbnail_name = base_name + "-thumbnail.webp"
+                thumbnail_name = f"{base_name}-thumbnail.webp"
                 if self.use_folder_prefix:
                     thumbnail_name = os.path.join("thumbnails", thumbnail_name)
                 thumbnail_target = (self.target / Path(thumbnail_name)).resolve()
@@ -333,7 +333,7 @@ class Command(BaseCommand):
                 thumbnail_target = None
 
             if not self.no_archive and document.has_archive_version:
-                archive_name = base_name + "-archive.pdf"
+                archive_name = f"{base_name}-archive.pdf"
                 if self.use_folder_prefix:
                     archive_name = os.path.join("archive", archive_name)
                 archive_target = (self.target / Path(archive_name)).resolve()
@@ -379,7 +379,7 @@ class Command(BaseCommand):
                     )
 
             if self.split_manifest:
-                manifest_name = base_name + "-manifest.json"
+                manifest_name = f"{base_name}-manifest.json"
                 if self.use_folder_prefix:
                     manifest_name = os.path.join("json", manifest_name)
                 manifest_name = (self.target / Path(manifest_name)).resolve()

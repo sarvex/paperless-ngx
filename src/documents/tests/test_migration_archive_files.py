@@ -22,7 +22,7 @@ migration_1012_obj = importlib.import_module(
 
 
 def archive_name_from_filename(filename):
-    return os.path.splitext(filename)[0] + ".pdf"
+    return f"{os.path.splitext(filename)[0]}.pdf"
 
 
 def archive_path_old(self):

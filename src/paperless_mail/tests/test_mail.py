@@ -142,10 +142,7 @@ class BogusMailBox(AbstractContextManager):
             to_ = criteria[criteria.index("TO") + 1].strip('"')
             msg = []
             for m in self.messages:
-                for to_addrs in m.to:
-                    if to_ in to_addrs:
-                        msg.append(m)
-
+                msg.extend(m for to_addrs in m.to if to_ in to_addrs)
         if "UNFLAGGED" in criteria:
             msg = filter(lambda m: not m.flagged, msg)
 
@@ -185,10 +182,7 @@ class BogusMailBox(AbstractContextManager):
 
 def fake_magic_from_buffer(buffer, mime=False):
     if mime:
-        if "PDF" in str(buffer):
-            return "application/pdf"
-        else:
-            return "unknown/type"
+        return "application/pdf" if "PDF" in str(buffer) else "unknown/type"
     else:
         return "Some verbose file description"
 
@@ -237,7 +231,7 @@ class TestMail(
         email_msg["Message-ID"] = str(uuid.uuid4())
         email_msg["Subject"] = subject
         email_msg["From"] = from_
-        email_msg["To"] = str(" ,".join(to))
+        email_msg["To"] = " ,".join(to)
         email_msg.set_content(body)
 
         # Either add some default number of attachments

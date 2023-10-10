@@ -46,7 +46,7 @@ def __get_boolean(key: str, default: str = "NO") -> bool:
     Return a boolean value based on whatever the user has supplied in the
     environment based on whether the value "looks like" it's True or not.
     """
-    return bool(os.getenv(key, default).lower() in ("yes", "y", "1", "t", "true"))
+    return os.getenv(key, default).lower() in ("yes", "y", "1", "t", "true")
 
 
 def __get_int(key: str, default: int) -> int:
@@ -112,24 +112,21 @@ def _parse_redis_url(env_redis: Optional[str]) -> tuple[str]:
         # channels_redis socket format, looks like:
         # "unix:///path/to/redis.sock"
         _, path = env_redis.split(":")
-        # Optionally setting a db number
-        if "?db=" in env_redis:
-            path, number = path.split("?db=")
-            return (f"redis+socket:{path}?virtual_host={number}", env_redis)
-        else:
+        if "?db=" not in env_redis:
             return (f"redis+socket:{path}", env_redis)
 
+        path, number = path.split("?db=")
+        return (f"redis+socket:{path}?virtual_host={number}", env_redis)
     elif "+socket" in env_redis.lower():
         # celery socket style, looks like:
         # "redis+socket:///path/to/redis.sock"
         _, path = env_redis.split(":")
-        if "?virtual_host=" in env_redis:
-            # Virtual host (aka db number)
-            path, number = path.split("?virtual_host=")
-            return (env_redis, f"unix:{path}?db={number}")
-        else:
+        if "?virtual_host=" not in env_redis:
             return (env_redis, f"unix:{path}")
 
+        # Virtual host (aka db number)
+        path, number = path.split("?virtual_host=")
+        return (env_redis, f"unix:{path}?db={number}")
     # Not a socket
     return (env_redis, env_redis)
 
@@ -333,13 +330,13 @@ ROOT_URLCONF = "paperless.urls"
 
 FORCE_SCRIPT_NAME = os.getenv("PAPERLESS_FORCE_SCRIPT_NAME")
 BASE_URL = (FORCE_SCRIPT_NAME or "") + "/"
-LOGIN_URL = BASE_URL + "accounts/login/"
+LOGIN_URL = f"{BASE_URL}accounts/login/"
 LOGOUT_REDIRECT_URL = os.getenv("PAPERLESS_LOGOUT_REDIRECT_URL")
 
 WSGI_APPLICATION = "paperless.wsgi.application"
 ASGI_APPLICATION = "paperless.asgi.application"
 
-STATIC_URL = os.getenv("PAPERLESS_STATIC_URL", BASE_URL + "static/")
+STATIC_URL = os.getenv("PAPERLESS_STATIC_URL", f"{BASE_URL}static/")
 WHITENOISE_STATIC_PREFIX = "/static/"
 
 _CELERY_REDIS_URL, _CHANNELS_REDIS_URL = _parse_redis_url(
@@ -384,9 +381,7 @@ AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
 ]
 
-AUTO_LOGIN_USERNAME = os.getenv("PAPERLESS_AUTO_LOGIN_USERNAME")
-
-if AUTO_LOGIN_USERNAME:
+if AUTO_LOGIN_USERNAME := os.getenv("PAPERLESS_AUTO_LOGIN_USERNAME"):
     _index = MIDDLEWARE.index("django.contrib.auth.middleware.AuthenticationMiddleware")
     # This overrides everything the auth middleware is doing but still allows
     # regular login in case the provided user does not exist.
@@ -889,11 +884,10 @@ FILENAME_DATE_ORDER = os.getenv("PAPERLESS_FILENAME_DATE_ORDER")
 # fewer dates shown.
 NUMBER_OF_SUGGESTED_DATES = __get_int("PAPERLESS_NUMBER_OF_SUGGESTED_DATES", 3)
 
-# Transformations applied before filename parsing
-FILENAME_PARSE_TRANSFORMS = []
-for t in json.loads(os.getenv("PAPERLESS_FILENAME_PARSE_TRANSFORMS", "[]")):
-    FILENAME_PARSE_TRANSFORMS.append((re.compile(t["pattern"]), t["repl"]))
-
+FILENAME_PARSE_TRANSFORMS = [
+    (re.compile(t["pattern"]), t["repl"])
+    for t in json.loads(os.getenv("PAPERLESS_FILENAME_PARSE_TRANSFORMS", "[]"))
+]
 # Specify the filename format for out files
 FILENAME_FORMAT = os.getenv("PAPERLESS_FILENAME_FORMAT")
 
@@ -942,13 +936,12 @@ def _parse_ignore_dates(
 
     ignored_dates = set()
     for s in env_ignore.split(","):
-        d = dateparser.parse(
+        if d := dateparser.parse(
             s,
             settings={
                 "DATE_ORDER": date_order,
             },
-        )
-        if d:
+        ):
             ignored_dates.add(d.date())
     return ignored_dates
 

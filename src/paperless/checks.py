@@ -79,12 +79,11 @@ def binaries_check(app_configs, **kwargs):
 
     binaries = (settings.CONVERT_BINARY, "tesseract")
 
-    check_messages = []
-    for binary in binaries:
-        if shutil.which(binary) is None:
-            check_messages.append(Warning(error.format(binary), hint))
-
-    return check_messages
+    return [
+        Warning(error.format(binary), hint)
+        for binary in binaries
+        if shutil.which(binary) is None
+    ]
 
 
 @register()

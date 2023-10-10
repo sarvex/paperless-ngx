@@ -99,9 +99,7 @@ def _convert_encrypted_thumbnails_to_webp(apps, schema_editor):
     start = time.time()
 
     with tempfile.TemporaryDirectory() as tempdir:
-        work_packages = []
-
-        if len(list(Path(settings.THUMBNAIL_DIR).glob("*.png.gpg"))) > 0:
+        if list(Path(settings.THUMBNAIL_DIR).glob("*.png.gpg")):
             passphrase = settings.PASSPHRASE
 
             if not passphrase:
@@ -109,6 +107,8 @@ def _convert_encrypted_thumbnails_to_webp(apps, schema_editor):
                     "Passphrase not defined, encrypted thumbnails cannot be migrated"
                     "without this",
                 )
+
+            work_packages = []
 
             for file in Path(settings.THUMBNAIL_DIR).glob("*.png.gpg"):
                 existing_thumbnail = file.resolve()

@@ -715,9 +715,8 @@ class TestFileHandlingWithArchive(DirectoriesMixin, FileSystemAssertsMixin, Test
         def fake_rename(src, dst):
             if "archive" in str(src):
                 raise OSError
-            else:
-                os.remove(src)
-                Path(dst).touch()
+            os.remove(src)
+            Path(dst).touch()
 
         m.side_effect = fake_rename
 
@@ -766,9 +765,8 @@ class TestFileHandlingWithArchive(DirectoriesMixin, FileSystemAssertsMixin, Test
         def fake_rename(src, dst):
             if "original" in str(src):
                 raise OSError
-            else:
-                os.remove(src)
-                Path(dst).touch()
+            os.remove(src)
+            Path(dst).touch()
 
         m.side_effect = fake_rename
 

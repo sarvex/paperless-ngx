@@ -44,12 +44,11 @@ class BulkArchiveStrategy:
 
         The path is already unique, as handled when a document is consumed or updated
         """
-        if archive and doc.has_archive_version:
-            in_archive_path = os.path.join(folder, doc.archive_filename)
-        else:
-            in_archive_path = os.path.join(folder, doc.filename)
-
-        return in_archive_path
+        return (
+            os.path.join(folder, doc.archive_filename)
+            if archive and doc.has_archive_version
+            else os.path.join(folder, doc.filename)
+        )
 
     def add_document(self, doc: Document):
         raise NotImplementedError  # pragma: no cover

@@ -380,13 +380,12 @@ def make_criterias(rule: MailRule, supports_gmail_labels: bool):
         criterias["body"] = rule.filter_body
 
     rule_query = get_rule_action(rule, supports_gmail_labels).get_criteria()
-    if isinstance(rule_query, dict):
-        if len(rule_query) or len(criterias):
-            return AND(**rule_query, **criterias)
-        else:
-            return "ALL"
-    else:
+    if not isinstance(rule_query, dict):
         return AND(rule_query, **criterias)
+    if len(rule_query) or len(criterias):
+        return AND(**rule_query, **criterias)
+    else:
+        return "ALL"
 
 
 def get_mailbox(server, port, security) -> MailBox:
@@ -537,8 +536,7 @@ class MailAccountHandler(LoggingMixin):
                     self.log.info(f"Located folder: {folder_info.name}")
             except Exception as e:
                 self.log.error(
-                    "Exception during folder listing, unable to provide list folders: "
-                    + str(e),
+                    f"Exception during folder listing, unable to provide list folders: {str(e)}"
                 )
 
             raise MailError(
@@ -563,9 +561,9 @@ class MailAccountHandler(LoggingMixin):
                 f"Rule {rule}: Error while fetching folder {rule.folder}",
             ) from err
 
-        mails_processed = 0
         total_processed_files = 0
 
+        mails_processed = 0
         for message in messages:
             if ProcessedMail.objects.filter(
                 rule=rule,
@@ -610,10 +608,10 @@ class MailAccountHandler(LoggingMixin):
         tag_ids = [tag.id for tag in rule.assign_tags.all()]
         doc_type = rule.assign_document_type
 
-        if (
-            rule.consumption_scope == MailRule.ConsumptionScope.EML_ONLY
-            or rule.consumption_scope == MailRule.ConsumptionScope.EVERYTHING
-        ):
+        if rule.consumption_scope in [
+            MailRule.ConsumptionScope.EML_ONLY,
+            MailRule.ConsumptionScope.EVERYTHING,
+        ]:
             processed_elements += self._process_eml(
                 message,
                 rule,
@@ -622,10 +620,10 @@ class MailAccountHandler(LoggingMixin):
                 doc_type,
             )
 
-        if (
-            rule.consumption_scope == MailRule.ConsumptionScope.ATTACHMENTS_ONLY
-            or rule.consumption_scope == MailRule.ConsumptionScope.EVERYTHING
-        ):
+        if rule.consumption_scope in [
+            MailRule.ConsumptionScope.ATTACHMENTS_ONLY,
+            MailRule.ConsumptionScope.EVERYTHING,
+        ]:
             processed_elements += self._process_attachments(
                 message,
                 rule,
@@ -646,7 +644,7 @@ class MailAccountHandler(LoggingMixin):
     ):
         processed_attachments = 0
 
-        consume_tasks = list()
+        consume_tasks = []
 
         for att in message.attachments:
             if (
@@ -722,27 +720,25 @@ class MailAccountHandler(LoggingMixin):
                     f"by paperless",
                 )
 
-        if len(consume_tasks) > 0:
+        if consume_tasks:
             queue_consumption_tasks(
                 consume_tasks=consume_tasks,
                 rule=rule,
                 message=message,
             )
-        else:
-            # No files to consume, just mark as processed if it wasnt by .eml processing
-            if not ProcessedMail.objects.filter(
+        elif not ProcessedMail.objects.filter(
                 rule=rule,
                 uid=message.uid,
                 folder=rule.folder,
             ).exists():
-                ProcessedMail.objects.create(
-                    rule=rule,
-                    folder=rule.folder,
-                    uid=message.uid,
-                    subject=message.subject,
-                    received=message.date,
-                    status="PROCESSED_WO_CONSUMPTION",
-                )
+            ProcessedMail.objects.create(
+                rule=rule,
+                folder=rule.folder,
+                uid=message.uid,
+                subject=message.subject,
+                received=message.date,
+                status="PROCESSED_WO_CONSUMPTION",
+            )
 
         return processed_attachments
 
@@ -811,5 +807,4 @@ class MailAccountHandler(LoggingMixin):
             message=message,
         )
 
-        processed_elements = 1
-        return processed_elements
+        return 1

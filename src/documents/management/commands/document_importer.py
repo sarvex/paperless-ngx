@@ -74,16 +74,13 @@ class Command(BaseCommand):
         if not os.access(self.source, os.R_OK):
             raise CommandError("That path doesn't appear to be readable")
 
-        manifest_paths = []
-
         main_manifest_path = self.source / "manifest.json"
 
         self._check_manifest_exists(main_manifest_path)
 
         with main_manifest_path.open() as infile:
             self.manifest = json.load(infile)
-        manifest_paths.append(main_manifest_path)
-
+        manifest_paths = [main_manifest_path]
         for file in Path(self.source).glob("**/*-manifest.json"):
             with file.open() as infile:
                 self.manifest += json.load(infile)
@@ -109,15 +106,15 @@ class Command(BaseCommand):
 
         self._check_manifest_valid()
 
-        with disable_signal(
-            post_save,
-            receiver=update_filename_and_move_files,
-            sender=Document,
-        ), disable_signal(
-            m2m_changed,
-            receiver=update_filename_and_move_files,
-            sender=Document.tags.through,
-        ):
+        with (disable_signal(
+                post_save,
+                receiver=update_filename_and_move_files,
+                sender=Document,
+            ), disable_signal(
+                m2m_changed,
+                receiver=update_filename_and_move_files,
+                sender=Document.tags.through,
+            )):
             # Fill up the database with whatever is in the manifest
             try:
                 with transaction.atomic():
@@ -139,13 +136,11 @@ class Command(BaseCommand):
                             f" importing {self.version}",
                         ),
                     )
-                    raise e
                 else:
                     self.stdout.write(
                         self.style.ERROR("No version information present"),
                     )
-                    raise e
-
+                raise e
             self._import_files_from_manifest(options["no_progress_bar"])
 
         self.stdout.write("Updating search index...")

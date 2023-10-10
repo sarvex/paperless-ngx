@@ -112,9 +112,9 @@ class MailRuleSerializer(OwnedObjectSerializer):
 
     def validate(self, attrs):
         if (
-            attrs["action"] == MailRule.MailAction.TAG
-            or attrs["action"] == MailRule.MailAction.MOVE
-        ) and attrs["action_parameter"] is None:
+            attrs["action"] in [MailRule.MailAction.TAG, MailRule.MailAction.MOVE]
+            and attrs["action_parameter"] is None
+        ):
             raise serializers.ValidationError("An action parameter is required.")
 
         return attrs

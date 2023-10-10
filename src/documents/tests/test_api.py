@@ -1181,7 +1181,7 @@ class TestDocumentApi(DirectoriesMixin, DocumentConsumeDelayMixin, APITestCase):
                 index.update_document(writer, doc)
 
         def search_query(q):
-            r = self.client.get("/api/documents/?query=test" + q)
+            r = self.client.get(f"/api/documents/?query=test{q}")
             self.assertEqual(r.status_code, status.HTTP_200_OK)
             return [hit["id"] for hit in r.data["results"]]
 
@@ -1194,31 +1194,33 @@ class TestDocumentApi(DirectoriesMixin, DocumentConsumeDelayMixin, APITestCase):
             search_query("&is_tagged=false"),
             [d1.id, d2.id, d5.id, d7.id, d8.id],
         )
-        self.assertCountEqual(search_query("&correspondent__id=" + str(c.id)), [d1.id])
+        self.assertCountEqual(search_query(f"&correspondent__id={str(c.id)}"), [d1.id])
         self.assertCountEqual(
             search_query(f"&correspondent__id__in={c.id},{c2.id}"),
             [d1.id, d8.id],
         )
         self.assertCountEqual(
-            search_query("&correspondent__id__none=" + str(c.id)),
+            search_query(f"&correspondent__id__none={str(c.id)}"),
             [d2.id, d3.id, d4.id, d5.id, d7.id, d8.id],
         )
-        self.assertCountEqual(search_query("&document_type__id=" + str(dt.id)), [d2.id])
+        self.assertCountEqual(
+            search_query(f"&document_type__id={str(dt.id)}"), [d2.id]
+        )
         self.assertCountEqual(
             search_query(f"&document_type__id__in={dt.id},{dt2.id}"),
             [d2.id, d8.id],
         )
         self.assertCountEqual(
-            search_query("&document_type__id__none=" + str(dt.id)),
+            search_query(f"&document_type__id__none={str(dt.id)}"),
             [d1.id, d3.id, d4.id, d5.id, d7.id, d8.id],
         )
-        self.assertCountEqual(search_query("&storage_path__id=" + str(sp.id)), [d7.id])
+        self.assertCountEqual(search_query(f"&storage_path__id={str(sp.id)}"), [d7.id])
         self.assertCountEqual(
             search_query(f"&storage_path__id__in={sp.id},{sp2.id}"),
             [d7.id, d8.id],
         )
         self.assertCountEqual(
-            search_query("&storage_path__id__none=" + str(sp.id)),
+            search_query(f"&storage_path__id__none={str(sp.id)}"),
             [d1.id, d2.id, d3.id, d4.id, d5.id, d8.id],
         )
 
@@ -1235,13 +1237,11 @@ class TestDocumentApi(DirectoriesMixin, DocumentConsumeDelayMixin, APITestCase):
             [d1.id, d3.id, d4.id, d5.id, d7.id],
         )
         self.assertCountEqual(
-            search_query("&tags__id__all=" + str(t.id) + "," + str(t2.id)),
-            [d3.id],
+            search_query(f"&tags__id__all={str(t.id)},{str(t2.id)}"), [d3.id]
         )
-        self.assertCountEqual(search_query("&tags__id__all=" + str(t.id)), [d3.id])
+        self.assertCountEqual(search_query(f"&tags__id__all={str(t.id)}"), [d3.id])
         self.assertCountEqual(
-            search_query("&tags__id__all=" + str(t2.id)),
-            [d3.id, d4.id],
+            search_query(f"&tags__id__all={str(t2.id)}"), [d3.id, d4.id]
         )
         self.assertCountEqual(
             search_query(f"&tags__id__in={t.id},{t2.id}"),
@@ -1486,7 +1486,7 @@ class TestDocumentApi(DirectoriesMixin, DocumentConsumeDelayMixin, APITestCase):
                 index.update_document(writer, doc)
 
         def search_query(q):
-            r = self.client.get("/api/documents/?query=test" + q)
+            r = self.client.get(f"/api/documents/?query=test{q}")
             self.assertEqual(r.status_code, status.HTTP_200_OK)
             return [hit["id"] for hit in r.data["results"]]
 
@@ -4742,7 +4742,7 @@ class TestTasks(DirectoriesMixin, APITestCase):
             task_file_name="task_two.pdf",
         )
 
-        response = self.client.get(self.ENDPOINT + f"?task_id={id1}")
+        response = self.client.get(f"{self.ENDPOINT}?task_id={id1}")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
@@ -4769,7 +4769,7 @@ class TestTasks(DirectoriesMixin, APITestCase):
             task_file_name="task_two.pdf",
         )
 
-        response = self.client.get(self.ENDPOINT + "?task_id=bad-task-id")
+        response = self.client.get(f"{self.ENDPOINT}?task_id=bad-task-id")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 0)

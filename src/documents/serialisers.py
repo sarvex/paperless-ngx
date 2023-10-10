@@ -105,7 +105,7 @@ class SetPermissionsMixin:
         users = User.objects.none()
         if user_ids is not None:
             users = User.objects.filter(id__in=user_ids)
-            if not users.count() == len(user_ids):
+            if users.count() != len(user_ids):
                 raise serializers.ValidationError(
                     "Some users in don't exist or were specified twice.",
                 )
@@ -115,7 +115,7 @@ class SetPermissionsMixin:
         groups = Group.objects.none()
         if group_ids is not None:
             groups = Group.objects.filter(id__in=group_ids)
-            if not groups.count() == len(group_ids):
+            if groups.count() != len(group_ids):
                 raise serializers.ValidationError(
                     "Some groups in don't exist or were specified twice.",
                 )
@@ -229,12 +229,11 @@ class OwnedObjectSerializer(serializers.ModelSerializer, SetPermissionsMixin):
             self._set_permissions(validated_data["set_permissions"], instance)
         if "owner" in validated_data and "name" in self.Meta.fields:
             name = validated_data["name"] if "name" in validated_data else instance.name
-            not_unique = (
+            if not_unique := (
                 self.Meta.model.objects.exclude(pk=instance.pk)
                 .filter(owner=validated_data["owner"], name=name)
                 .exists()
-            )
-            if not_unique:
+            ):
                 raise serializers.ValidationError(
                     {"error": "Object violates owner / name unique constraint"},
                 )
@@ -304,10 +303,7 @@ class ColorField(serializers.Field):
         raise serializers.ValidationError
 
     def to_representation(self, value):
-        for id, color in self.COLOURS:
-            if color == value:
-                return id
-        return 1
+        return next((id for id, color in self.COLOURS if color == value), 1)
 
 
 class TagSerializerVersion1(MatchingModelSerializer, OwnedObjectSerializer):
@@ -422,7 +418,7 @@ class DocumentSerializer(OwnedObjectSerializer, DynamicFieldsModelSerializer):
     def to_representation(self, instance):
         doc = super().to_representation(instance)
         if self.truncate_content and "content" in self.fields:
-            doc["content"] = doc.get("content")[0:550]
+            doc["content"] = doc.get("content")[:550]
         return doc
 
     def update(self, instance, validated_data):
@@ -534,7 +530,7 @@ class DocumentListSerializer(serializers.Serializer):
         if not all(isinstance(i, int) for i in documents):
             raise serializers.ValidationError(f"{name} must be a list of integers")
         count = Document.objects.filter(id__in=documents).count()
-        if not count == len(documents):
+        if count != len(documents):
             raise serializers.ValidationError(
                 f"Some documents in {name} don't exist or were specified twice.",
             )
@@ -569,7 +565,7 @@ class BulkEditSerializer(DocumentListSerializer, SetPermissionsMixin):
         if not all(isinstance(i, int) for i in tags):
             raise serializers.ValidationError(f"{name} must be a list of integers")
         count = Tag.objects.filter(id__in=tags).count()
-        if not count == len(tags):
+        if count != len(tags):
             raise serializers.ValidationError(
                 f"Some tags in {name} don't exist or were specified twice.",
             )
@@ -597,53 +593,49 @@ class BulkEditSerializer(DocumentListSerializer, SetPermissionsMixin):
             raise serializers.ValidationError("Unsupported method.")
 
     def _validate_parameters_tags(self, parameters):
-        if "tag" in parameters:
-            tag_id = parameters["tag"]
-            try:
-                Tag.objects.get(id=tag_id)
-            except Tag.DoesNotExist:
-                raise serializers.ValidationError("Tag does not exist")
-        else:
+        if "tag" not in parameters:
             raise serializers.ValidationError("tag not specified")
+        tag_id = parameters["tag"]
+        try:
+            Tag.objects.get(id=tag_id)
+        except Tag.DoesNotExist:
+            raise serializers.ValidationError("Tag does not exist")
 
     def _validate_parameters_document_type(self, parameters):
-        if "document_type" in parameters:
-            document_type_id = parameters["document_type"]
-            if document_type_id is None:
-                # None is ok
-                return
-            try:
-                DocumentType.objects.get(id=document_type_id)
-            except DocumentType.DoesNotExist:
-                raise serializers.ValidationError("Document type does not exist")
-        else:
+        if "document_type" not in parameters:
             raise serializers.ValidationError("document_type not specified")
+        document_type_id = parameters["document_type"]
+        if document_type_id is None:
+            # None is ok
+            return
+        try:
+            DocumentType.objects.get(id=document_type_id)
+        except DocumentType.DoesNotExist:
+            raise serializers.ValidationError("Document type does not exist")
 
     def _validate_parameters_correspondent(self, parameters):
-        if "correspondent" in parameters:
-            correspondent_id = parameters["correspondent"]
-            if correspondent_id is None:
-                return
-            try:
-                Correspondent.objects.get(id=correspondent_id)
-            except Correspondent.DoesNotExist:
-                raise serializers.ValidationError("Correspondent does not exist")
-        else:
+        if "correspondent" not in parameters:
             raise serializers.ValidationError("correspondent not specified")
+        correspondent_id = parameters["correspondent"]
+        if correspondent_id is None:
+            return
+        try:
+            Correspondent.objects.get(id=correspondent_id)
+        except Correspondent.DoesNotExist:
+            raise serializers.ValidationError("Correspondent does not exist")
 
     def _validate_storage_path(self, parameters):
-        if "storage_path" in parameters:
-            storage_path_id = parameters["storage_path"]
-            if storage_path_id is None:
-                return
-            try:
-                StoragePath.objects.get(id=storage_path_id)
-            except StoragePath.DoesNotExist:
-                raise serializers.ValidationError(
-                    "Storage path does not exist",
-                )
-        else:
+        if "storage_path" not in parameters:
             raise serializers.ValidationError("storage path not specified")
+        storage_path_id = parameters["storage_path"]
+        if storage_path_id is None:
+            return
+        try:
+            StoragePath.objects.get(id=storage_path_id)
+        except StoragePath.DoesNotExist:
+            raise serializers.ValidationError(
+                "Storage path does not exist",
+            )
 
     def _validate_parameters_modify_tags(self, parameters):
         if "add_tags" in parameters:
@@ -677,7 +669,7 @@ class BulkEditSerializer(DocumentListSerializer, SetPermissionsMixin):
             self._validate_parameters_correspondent(parameters)
         elif method == bulk_edit.set_document_type:
             self._validate_parameters_document_type(parameters)
-        elif method == bulk_edit.add_tag or method == bulk_edit.remove_tag:
+        elif method in [bulk_edit.add_tag, bulk_edit.remove_tag]:
             self._validate_parameters_tags(parameters)
         elif method == bulk_edit.modify_tags:
             self._validate_parameters_modify_tags(parameters)
@@ -752,22 +744,13 @@ class PostDocumentSerializer(serializers.Serializer):
         return document.name, document_data
 
     def validate_correspondent(self, correspondent):
-        if correspondent:
-            return correspondent.id
-        else:
-            return None
+        return correspondent.id if correspondent else None
 
     def validate_document_type(self, document_type):
-        if document_type:
-            return document_type.id
-        else:
-            return None
+        return document_type.id if document_type else None
 
     def validate_tags(self, tags):
-        if tags:
-            return [tag.id for tag in tags]
-        else:
-            return None
+        return [tag.id for tag in tags] if tags else None
 
 
 class BulkDownloadSerializer(DocumentListSerializer):
@@ -878,11 +861,10 @@ class UiSettingsViewSerializer(serializers.ModelSerializer):
         return settings
 
     def create(self, validated_data):
-        ui_settings = UiSettings.objects.update_or_create(
+        return UiSettings.objects.update_or_create(
             user=validated_data.get("user"),
             defaults={"settings": validated_data.get("settings", None)},
         )
-        return ui_settings
 
 
 class TasksViewSerializer(serializers.ModelSerializer):
@@ -931,13 +913,12 @@ class AcknowledgeTasksViewSerializer(serializers.Serializer):
     )
 
     def _validate_task_id_list(self, tasks, name="tasks"):
-        pass
         if not isinstance(tasks, list):
             raise serializers.ValidationError(f"{name} must be a list")
         if not all(isinstance(i, int) for i in tasks):
             raise serializers.ValidationError(f"{name} must be a list of integers")
         count = PaperlessTask.objects.filter(id__in=tasks).count()
-        if not count == len(tasks):
+        if count != len(tasks):
             raise serializers.ValidationError(
                 f"Some tasks in {name} don't exist or were specified twice.",
             )
@@ -1016,7 +997,7 @@ class BulkEditObjectPermissionsSerializer(serializers.Serializer, SetPermissions
             raise serializers.ValidationError("objects must be a list of integers")
         object_class = self.get_object_class(object_type)
         count = object_class.objects.filter(id__in=objects).count()
-        if not count == len(objects):
+        if count != len(objects):
             raise serializers.ValidationError(
                 "Some ids in objects don't exist or were specified twice.",
             )

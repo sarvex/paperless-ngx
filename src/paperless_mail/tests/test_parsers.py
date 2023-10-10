@@ -653,5 +653,5 @@ class TestParser(FileSystemAssertsMixin, HttpxMockMixin, BaseMailParserTestCase)
 
         self.assertEqual(
             str(request.url),
-            self.parser.gotenberg_server + "/forms/chromium/convert/html",
+            f"{self.parser.gotenberg_server}/forms/chromium/convert/html",
         )
